@@ -1,0 +1,298 @@
+---
+title: "CARPS Reproducibility Report"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+# Report Details
+
+```{r}
+articleID <- "EXT_10-07-2015" # insert the article ID code here e.g., "10-3-2015_PS"
+reportType <- "final" # specify whether this is the 'pilot' report or 'final' report
+pilotNames <- "Julie Cachia" # insert the pilot's name here e.g., "Tom Hardwicke".  If there are multiple pilots enter both names in a character string e.g., "Tom Hardwicke, Bob Dylan"
+copilotNames <- "Greses Perez" # # insert the co-pilot's name here e.g., "Michael Frank". If there are multiple co-pilots enter both names in a character string e.g., "Tom Hardwicke, Bob Dylan"
+pilotTTC <- "240" # insert the pilot's estimated time to complete (in minutes, fine to approximate) e.g., 120
+copilotTTC <- "800" # insert the co-pilot's estimated time to complete (in minutes, fine to approximate) e.g., 120
+pilotStartDate <- as.Date("11/03/18", format = "%m/%d/%y") # insert the pilot's start date in US format e.g., as.Date("01/25/18", format = "%m/%d/%y")
+copilotStartDate <- as.Date("11/04/18", format = "%m/%d/%y") # insert the co-pilot's start date in US format e.g., as.Date("01/25/18", format = "%m/%d/%y")
+completionDate <- as.Date("11/13/18", format = "%m/%d/%y") # copilot insert the date of final report completion (after any necessary rounds of author assistance) in US format e.g., as.Date("01/25/18", format = "%m/%d/%y")
+```
+
+------
+
+#### Methods summary: 
+
+The authors gathered photographs of recently incarcerated inmates from the State of Florida database to investigate whether ratings of facial trustworthiness (as rated by 208 American MTurk participants) differs according to actual severity of sentencing (serving life sentence vs. awaiting execution) and race. They subjected the mean trustworthiness ratings for each of the 742 photographs to a 2 (race: Black vs. White) x 2 (sentence: life sentence vs. death sentence) analysis of variance (ANOVA).
+
+------
+
+#### Target outcomes: 
+
+> Because we were interested in generalizing about the characteristics of the targets (e.g., how perceptions of their trustworthiness relate to their sentences), we analyzed the data with the target as the unit of analysis. We therefore averaged the participants’ ratings to compute mean consensus judgments for each face on each trait. Degrees of freedom thus reflect the number of faces, rather than the number of participants contributing to judgments of those faces. Mean analyses. To investigate whether trustworthiness differed according to sentence and target race, we first subjected the mean trustworthiness data for each of the 742 targets to a 2 (race: Black vs. White) × 2 (sentence: life vs. death) between-targets analysis of variance (ANOVA). We observed a main effect of sentence, F(1, 738) = 7.44, p < .01, ηp2 = .01; targets sentenced to death looked less trustworthy (M = 2.76, SE = 0.03) than targets sentenced to life imprisonment (M = 2.87, SE = 0.03), 95% confidence interval (CI) for the difference = [0.03, 0.20]. We also observed an unpredicted main effect of race, F(1, 738) = 47.67, p < .001, ηp2 = .06; Black targets were rated as more trustworthy (M = 2.96, SE = 0.03) than White targets (M = 2.67, SE = 0.03), 95% CI for the difference = [0.21, 0.37] (see the Supplemental Material available online for further discussion). Notably, race and sentence did not interact, F(1, 738) = 0.02, p > .88, ηp2 < .001, which suggests that the relationship between trustworthiness and sentence was not moderated by target race. For this reason, we did not compute an interaction term involving race for the subsequent regression analyses.
+
+------
+
+```{r global_options, include=FALSE}
+# sets up some formatting options for the R Markdown document
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+# Step 1: Load packages and prepare report object
+
+```{r}
+# load packages
+library(tidyverse) # for data munging
+library(knitr) # for kable table formating
+library(haven) # import and export 'SPSS', 'Stata' and 'SAS' Files
+library(readxl) # import excel files
+library(CARPSreports) # custom report functions
+library(lsr) #for ANOVA effect size calculations
+```
+
+```{r}
+# Prepare report object. This will be updated automatically by the reproCheck function each time values are compared
+reportObject <- data.frame(dummyRow = TRUE, reportedValue = NA, obtainedValue = NA, valueType = NA, percentageError = NA, comparisonOutcome = NA, eyeballCheck = NA)
+```
+
+# Step 2: Load data
+
+```{r}
+Data <- read_excel("data/Study1 Data Unrounded.xlsx")
+```
+
+# Step 3: Tidy data
+
+```{r}
+#Already tidy data
+
+#Label sentencing and race
+Data$sent <- factor(Data$sent, levels = c(0,1), labels = c("Life", "Death"))
+Data$race <- factor(Data$race, levels = c(-1,1), labels = c("Black", "White"))
+```
+
+# Step 4: Run analysis
+
+Running the following analysis: 
+> To investigate whether trustworthiness differed according to sentence and target race, we first subjected the mean trustworthiness data for each of the 742 targets to a 2 (race: Black vs. White) × 2 (sentence: life vs. death) between-targets analysis of variance (ANOVA).
+
+
+```{r}
+KeyAnalysis <- aov(trust ~ race * sent, data = Data)
+Output <- summary(KeyAnalysis)
+Output
+EtaSquared <- etaSquared(KeyAnalysis)
+EtaSquared
+```
+
+Checking the following results: 
+
+### Main effect of sentence: 
+> We observed a main effect of sentence, F(1, 738) = 7.44, p < .01, ηp2 = .01
+
+```{r}
+reportObject <- reproCheck(reportedValue = '1', obtainedValue =  Output[[1]]$Df[2], valueType = 'df')
+```
+
+
+```{r}
+reportObject <- reproCheck(reportedValue = '738', obtainedValue = Output[[1]]$Df[4], valueType = 'df')
+```
+
+```{r}
+reportObject <- reproCheck(reportedValue = '7.44', obtainedValue = Output[[1]]$F[2], valueType = 'F')
+```
+
+```{r}
+reportObject <- reproCheck(reportedValue = '<.01', obtainedValue = Output[[1]]$`Pr(>F)`[2], valueType = 'p', eyeballCheck = TRUE)
+```
+
+```{r}
+reportObject <- reproCheck(reportedValue = '.01', obtainedValue = EtaSquared[2,2], valueType = 'other') #Partial Eta Squared
+```
+
+### Main effect of race: 
+> We also observed an unpredicted main effect of race, F(1, 738) = 47.67, p < .001, ηp2 = .06
+
+```{r}
+reportObject <- reproCheck(reportedValue = '1', obtainedValue =  Output[[1]]$Df[1], valueType = 'df')
+```
+
+
+```{r}
+reportObject <- reproCheck(reportedValue = '738', obtainedValue = Output[[1]]$Df[4], valueType = 'df')
+```
+```{r}
+reportObject <- reproCheck(reportedValue = '47.67', obtainedValue = Output[[1]]$F[1], valueType = 'F')
+```
+
+```{r}
+reportObject <- reproCheck(reportedValue = '<.001', obtainedValue = Output[[1]]$`Pr(>F)`[1], valueType = 'p', eyeballCheck = TRUE)
+```
+
+```{r}
+reportObject <- reproCheck(reportedValue = '.06', obtainedValue = EtaSquared[1,2], valueType = 'other') #Partial Eta Squared
+```
+
+
+### Interaction between sentence and race: 
+> Notably, race and sentence did not interact, F(1, 738) = 0.02, p > .88, ηp2 < .001
+
+```{r}
+reportObject <- reproCheck(reportedValue = '1', obtainedValue =  Output[[1]]$Df[3], valueType = 'df')
+```
+
+```{r}
+reportObject <- reproCheck(reportedValue = '738', obtainedValue = Output[[1]]$Df[4], valueType = 'df')
+```
+
+```{r}
+reportObject <- reproCheck(reportedValue = '0.02', obtainedValue = Output[[1]]$F[3], valueType = 'F')
+```
+
+```{r}
+reportObject <- reproCheck(reportedValue = '>.88', obtainedValue = Output[[1]]$`Pr(>F)`[3], valueType = 'p', eyeballCheck = TRUE)
+```
+
+```{r}
+reportObject <- reproCheck(reportedValue = '<.001', obtainedValue = EtaSquared[3,2], valueType = 'other', eyeballCheck = TRUE) #Partial Eta Squared
+```
+
+
+### Reproducing the means, SE's, and confidence intervals reported: 
+
+> Targets sentenced to death looked less trustworthy (M = 2.76, SE = 0.03) than targets sentenced to life imprisonment (M = 2.87, SE = 0.03), 95% confidence interval (CI) for the difference = [0.03, 0.20].
+
+```{r}
+x <- t.test(Data$trust ~ Data$sent, data=Data, conf.level=.95)
+
+SummaryTable <- Data %>%
+  group_by(sent) %>%
+  summarise(Mean = mean(trust), SE = sd(trust)/sqrt(length(trust)))
+```
+
+```{r}
+reportObject <- reproCheck(reportedValue = '2.76', obtainedValue = SummaryTable$Mean[SummaryTable$sent=="Death"], valueType = 'mean')
+```
+```{r}
+reportObject <- reproCheck(reportedValue = '0.03', obtainedValue = SummaryTable$SE[SummaryTable$sent=="Death"], valueType = 'se')
+```
+```{r}
+reportObject <- reproCheck(reportedValue = '2.87', obtainedValue = SummaryTable$Mean[SummaryTable$sent=="Life"], valueType = 'mean')
+```
+```{r}
+reportObject <- reproCheck(reportedValue = '0.03', obtainedValue = SummaryTable$SE[SummaryTable$sent=="Life"], valueType = 'se')
+```
+```{r}
+reportObject <- reproCheck(reportedValue = '0.03', obtainedValue = x$conf.int[1], valueType = 'ci') #Lower CI
+```
+```{r}
+reportObject <- reproCheck(reportedValue = '0.20', obtainedValue = x$conf.int[2], valueType = 'ci') #Upper CI
+```
+
+
+### Reproducing the means, SE's, and confidence intervals reported: 
+
+> Black targets were rated as more trustworthy (M = 2.96, SE = 0.03) than White targets (M = 2.67, SE = 0.03), 95% CI for the difference = [0.21, 0.37]
+
+```{r}
+x <- t.test(Data$trust ~ Data$race, data=Data, conf.level=.95)
+
+SummaryTable2 <- Data %>%
+  group_by(race) %>%
+  summarise(Mean = mean(trust), SE = sd(trust)/sqrt(length(trust)))
+```
+```{r}
+reportObject <- reproCheck(reportedValue = '2.96', obtainedValue = SummaryTable2$Mean[SummaryTable2$race=="Black"], valueType = 'mean')
+```
+```{r}
+reportObject <- reproCheck(reportedValue = '0.03', obtainedValue = SummaryTable2$SE[SummaryTable2$race=="Black"], valueType = 'se')
+```
+```{r}
+reportObject <- reproCheck(reportedValue = '2.67', obtainedValue = SummaryTable2$Mean[SummaryTable2$race=="White"], valueType = 'mean')
+```
+```{r}
+reportObject <- reproCheck(reportedValue = '0.03', obtainedValue = SummaryTable2$SE[SummaryTable2$race=="White"], valueType = 'se')
+```
+```{r}
+reportObject <- reproCheck(reportedValue = '0.21', obtainedValue = x$conf.int[1], valueType = 'ci') #Lower CI
+```
+```{r}
+reportObject <- reproCheck(reportedValue = '0.37', obtainedValue = x$conf.int[2], valueType = 'ci') #Upper CI
+```
+
+# Step 5: Conclusion
+
+The above analysis reproduces everything except:
+
+1. The F value for the main effect of sentence (my results show F value = 7.99, but they report F value = 7.44)
+
+2. The mean trustworthiness for targets with death sentences (my results show M = 2.73, but they report M = 2.76), and mean trustworthiness for targets with life sentences (my results show M = 2.84, but they report M = 2.87). 
+
+Since everything else lines up perfectly (all other F values, df's, p values, partial eta squares, means, SE, and confidence intervals), and the errors were "minor" as categorized by reproCheck, it seems most likely that the above two errors were typos. 
+
+
+```{r}
+Author_Assistance = FALSE # was author assistance provided? (if so, enter TRUE)
+
+Insufficient_Information_Errors <- 0 # how many discrete insufficient information issues did you encounter?
+
+# The three inconsistencies noted above seem to be typos.
+
+locus_typo <- 3 # how many discrete issues did you encounter that related to typographical errors?
+locus_specification <- 0 # how many discrete issues did you encounter that related to incomplete, incorrect, or unclear specification of the original analyses?
+locus_analysis <- 0 # how many discrete issues did you encounter that related to errors in the authors' original analyses?
+locus_data <- 0 # how many discrete issues did you encounter that related to errors in the data files shared by the authors?
+locus_unidentified <- 0 # how many discrete issues were there for which you could not identify the cause
+
+# How many of the above issues were resolved through author assistance?
+locus_typo_resolved <- NA # how many discrete issues did you encounter that related to typographical errors?
+locus_specification_resolved <- NA # how many discrete issues did you encounter that related to incomplete, incorrect, or unclear specification of the original analyses?
+locus_analysis_resolved <- NA # how many discrete issues did you encounter that related to errors in the authors' original analyses?
+locus_data_resolved <- NA # how many discrete issues did you encounter that related to errors in the data files shared by the authors?
+locus_unidentified_resolved <- NA # how many discrete issues were there for which you could not identify the cause
+
+Affects_Conclusion <- FALSE # Do any reproducibility issues encounter appear to affect the conclusions made in the original article? TRUE, FALSE, or NA. This is a subjective judgement, but you should taking into account multiple factors, such as the presence/absence of decision errors, the number of target outcomes that could not be reproduced, the type of outcomes that could or could not be reproduced, the difference in magnitude of effect sizes, and the predictions of the specific hypothesis under scrutiny.
+```
+
+```{r}
+reportObject <- reportObject %>%
+  filter(dummyRow == FALSE) %>% # remove the dummy row
+  select(-dummyRow) %>% # remove dummy row designation
+  mutate(articleID = articleID) %>% # add variables to report 
+  select(articleID, everything()) # make articleID first column
+
+# decide on final outcome
+if(any(reportObject$comparisonOutcome %in% c("MAJOR_ERROR", "DECISION_ERROR")) | Insufficient_Information_Errors > 0){
+  finalOutcome <- "Failure without author assistance"
+  if(Author_Assistance == T){
+    finalOutcome <- "Failure despite author assistance"
+  }
+}else{
+  finalOutcome <- "Success without author assistance"
+  if(Author_Assistance == T){
+    finalOutcome <- "Success with author assistance"
+  }
+}
+
+# collate report extra details
+reportExtras <- data.frame(articleID, pilotNames, copilotNames, pilotTTC, copilotTTC, pilotStartDate, copilotStartDate, completionDate, Author_Assistance, finalOutcome, Insufficient_Information_Errors, locus_typo, locus_specification, locus_analysis, locus_data, locus_unidentified, locus_typo_resolved, locus_specification_resolved, locus_analysis_resolved, locus_data_resolved, locus_unidentified_resolved)
+
+# save report objects
+if(reportType == "pilot"){
+  write_csv(reportObject, "pilotReportDetailed.csv")
+  write_csv(reportExtras, "pilotReportExtras.csv")
+}
+
+if(reportType == "final"){
+  write_csv(reportObject, "finalReportDetailed.csv")
+  write_csv(reportExtras, "finalReportExtras.csv")
+}
+```
+
+# Session information
+
+```{r session_info, include=TRUE, echo=TRUE, results='markup'}
+devtools::session_info()
+```
